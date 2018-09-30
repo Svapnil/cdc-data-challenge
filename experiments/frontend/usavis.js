@@ -1,18 +1,68 @@
-/*  This visualization was made possible by modifying code provided by:
 
-Scott Murray, Choropleth example from "Interactive Data Visualization for the Web"
-https://github.com/alignedleft/d3-book/blob/master/chapter_12/05_choropleth.html
+var heatmapJson;
+var stateMap;
+function getVis(jsonFile) {
+	$.getJSON(jsonFile, function(data) {
+	    heatmapJson = data;
+			stateMap = new Map(heatmapJson.states);
+			document.getElementById("title").innerText = "Heatmap of " + heatmapJson.name +
+																										" from Years " + heatmapJson.year[0] +
+																										" to " + heatmapJson.year[heatmapJson.year.length-1];
+			getLayout();
+	});
+}
 
-Malcolm Maclean, tooltips example tutorial
-http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
+$("#suicide").click(function() {
+	document.getElementById("suicide").className = "btn btn-secondary disabled";
+	document.getElementById("mental").className = "btn btn-secondary";
+	document.getElementById("poverty").className = "btn btn-secondary";
+	getVis("suicideObj.json");
+});
+$("#mental").click(function() {
+	document.getElementById("suicide").className = "btn btn-secondary";
+	document.getElementById("mental").className = "btn btn-secondary disabled";
+	document.getElementById("poverty").className = "btn btn-secondary";
+	getVis("mentalObj.json");
+});
+$("#poverty").click(function() {
+	document.getElementById("suicide").className = "btn btn-secondary";
+	document.getElementById("mental").className = "btn btn-secondary";
+	document.getElementById("poverty").className = "btn btn-secondary disabled";
+	getVis("povertyObj.json");
+});
 
-Mike Bostock, Pie Chart Legend
-http://bl.ocks.org/mbostock/3888852  */
-
+var interval;
+var isPlaying = false;
+$("#back").click(function() {
+	currentFrame = (currentFrame-1)%maxFrames;
+	setFrame();
+});
+$("#play").click(function() {
+	var p = document.getElementById('playIcon');
+	if(isPlaying) {
+		clearInterval(interval);
+		isPlaying = false;
+		p.className = "fas fa-play";
+	} else {
+		isPlaying = true;
+		p.className = "fas fa-pause";
+		interval = setInterval(function() {
+		currentFrame = (currentFrame+1)%maxFrames;
+		setFrame();
+		}, 1000);
+	}
+});
+$("#forward").click(function() {
+	currentFrame = (currentFrame+1)%maxFrames;
+	setFrame();
+});
 
 //Width and height of map
 var width = 960;
 var height = 500;
+
+var currentFrame = 0;
+var maxFrames = 1;
 
 // D3 Projection
 var projection = d3.geo.albersUsa()
@@ -23,28 +73,91 @@ var projection = d3.geo.albersUsa()
 var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
 		  	 .projection(projection);  // tell path generator to use albersUsa projection
 
-
 // Define linear scale for output
-var color = d3.scale.linear()
-			  .range(["rgb(213,222,217)","rgb(69,173,168)","rgb(84,36,55)","rgb(217,91,67)"]);
-
-var legendText = ["Cities Lived", "States Lived", "States Visited", "Nada"];
+var color = d3.scale.linear().domain([-3,4]).range(["rgb(213,222,217)","FireBrick"]); //["rgb(213,222,217)","FireBrick"]
 
 //Create SVG element and append map to the SVG
-var svg = d3.select("body")
+var svg = d3.select("svg")
 			.append("svg")
 			.attr("width", width)
 			.attr("height", height);
 
+function getLayout() {
+	var legend = document.getElementById('legend');
+	while (legend.firstChild) {
+    legend.removeChild(legend.firstChild);
+	}
+	for(var i = 0; i < heatmapJson.legend.length; i++) {
+		var divLeg = document.createElement("div");
+		var square = document.createElement("div");
+		square.setAttribute("style","width:30px;height:20px;background-color:" + heatmapJson.colors[i]);
+		var legendText = document.createElement("p");
+		legendText.innerText = heatmapJson.legend[i];
+		divLeg.appendChild(square);
+		divLeg.appendChild(legendText);
+		legend.appendChild(divLeg);
+	}
+
+	var dropdown = document.getElementById('framesDropdown');
+	while (dropdown.firstChild) {
+    dropdown.removeChild(dropdown.firstChild);
+	}
+	for(var i = 0; i < heatmapJson.year.length; i++) {
+		var newYear = document.createElement("a");
+		newYear.setAttribute("class","dropdown-item");
+		newYear.innerText = heatmapJson.year[i];
+		dropdown.appendChild(newYear);
+	}
+	currentFrame = 0;
+	maxFrames = heatmapJson.year.length;
+	setFrame();
+}
+
+function setFrame() {
+	var paths = svg.selectAll("path")[0];
+	for(var i = 0; i < paths.length; i++) {
+		if(stateMap.get(paths[i].__data__.properties.name)) {
+			paths[i].style.fill = pickColor(stateMap.get(paths[i].__data__.properties.name)[currentFrame]);
+		}
+	}
+	var current = document.getElementById('currentFrameHeader');
+	current.innerText = heatmapJson.year[currentFrame];
+}
+
 // Append Div for tooltip to SVG
-var div = d3.select("body")
+var div = d3.select("svg")
 		    .append("div")
     		.attr("class", "tooltip")
     		.style("opacity", 0);
 
-// Load in my states data!
+function pickColor(zValue) {
+	switch(Math.floor(zValue)) {
+		case -3:
+				return heatmapJson.colors[0];
+			break;
+		case -2:
+				return heatmapJson.colors[1];
+			break;
+		case -1:
+				return heatmapJson.colors[2];
+			break;
+		case 0:
+				return heatmapJson.colors[3];
+			break;
+		case 1:
+				return heatmapJson.colors[4];
+			break;
+		case 2:
+				return heatmapJson.colors[5];
+			break;
+		case 3:
+				return heatmapJson.colors[6];
+			break;
+	}
+}
+
+// // Load in my states data!
 d3.csv("stateslived.csv", function(data) {
-color.domain([0,1,2,3]); // setting the range of the input data
 
 // Load GeoJSON data and merge with states data
 d3.json("us-states.json", function(json) {
@@ -74,6 +187,7 @@ for (var i = 0; i < data.length; i++) {
 }
 
 // Bind the data to the SVG and create one path per GeoJSON feature
+// THIS DATA COLORS IN EACH STATE
 svg.selectAll("path")
 	.data(json.features)
 	.enter()
@@ -88,74 +202,13 @@ svg.selectAll("path")
 
 	if (value) {
 	//If value exists…
-	return color(value);
+	return pickColor(value);
 	} else {
 	//If value is undefined…
 	return "rgb(213,222,217)";
 	}
 });
-
-
-// Map the cities I have lived in!
-d3.csv("cities-lived.csv", function(data) {
-
-svg.selectAll("circle")
-	.data(data)
-	.enter()
-	.append("circle")
-	.attr("cx", function(d) {
-		return projection([d.lon, d.lat])[0];
-	})
-	.attr("cy", function(d) {
-		return projection([d.lon, d.lat])[1];
-	})
-	.attr("r", function(d) {
-		return Math.sqrt(d.years) * 4;
-	})
-		.style("fill", "rgb(217,91,67)")
-		.style("opacity", 0.85)
-
-	// Modification of custom tooltip code provided by Malcolm Maclean, "D3 Tips and Tricks"
-	// http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
-	.on("mouseover", function(d) {
-    	div.transition()
-      	   .duration(200)
-           .style("opacity", .9);
-           div.text(d.place)
-           .style("left", (d3.event.pageX) + "px")
-           .style("top", (d3.event.pageY - 28) + "px");
-	})
-
-    // fade out tooltip on mouse out
-    .on("mouseout", function(d) {
-        div.transition()
-           .duration(500)
-           .style("opacity", 0);
-    });
-});
-
-// Modified Legend Code from Mike Bostock: http://bl.ocks.org/mbostock/3888852
-var legend = d3.select("body").append("svg")
-      			.attr("class", "legend")
-     			.attr("width", 140)
-    			.attr("height", 200)
-   				.selectAll("g")
-   				.data(color.domain().slice().reverse())
-   				.enter()
-   				.append("g")
-     			.attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-
-  	legend.append("rect")
-   		  .attr("width", 18)
-   		  .attr("height", 18)
-   		  .style("fill", color);
-
-  	legend.append("text")
-  		  .data(legendText)
-      	  .attr("x", 24)
-      	  .attr("y", 9)
-      	  .attr("dy", ".35em")
-      	  .text(function(d) { return d; });
 	});
-
 });
+
+$("#suicide").click();
