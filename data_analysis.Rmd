@@ -1,0 +1,124 @@
+---
+title: "Presentation Analysis"
+output: html_notebook
+---
+```{r}
+library(readr)
+LeadingCauses <- read_csv("~/Downloads/NCHS_-_Leading_Causes_of_Death__United_States.csv")
+View(LeadingCauses)
+```
+
+```{r}
+Suicides1 <- LeadingCauses %>% 
+  filter (`Cause Name`== "Suicide", State != "United States" ) %>%
+  mutate( AgeAdj = `Age-adjusted Death Rate`) %>%
+  select( `Cause Name`, State, AgeAdj, Year) %>% 
+  arrange(State, Year)
+
+ggplot(data = Suicides1, mapping = aes(Year, AgeAdj, color = State))+
+  geom_line()
+
+ggplot(data = Suicides1, mapping = aes(Year, AgeAdj))+
+  geom_line()+
+  facet_wrap(~State)
+```
+
+```{r}
+library(readr)
+Poverty <- read_csv("~/Downloads/pov_9917.csv") %>%
+  mutate (State = state, Year = year) %>%
+  arrange(State, Year)
+View(Poverty)
+```
+
+```{r}
+BigDataset <- merge(Suicides1, Poverty ,by= c("State", "Year")) %>%
+  select(State, Year, AgeAdj, percent)
+View(BigDataset)
+```
+
+```{r}
+suicidetoyear = lm (AgeAdj ~ Year, data = BigDataset)
+summary(suicidetoyear)
+boxplot(AgeAdj ~ Year, data = BigDataset)
+```
+
+```{r}
+plot(AgeAdj ~ percent, data = BigDataset)
+suicidetopoverty = lm( AgeAdj ~ percent, data = BigDataset)
+abline(suicidetopoverty)
+summary(suicidetopoverty)
+```
+
+```{r}
+ggplot (data = BigDataset, mapping = aes(percent, AgeAdj)) + 
+  geom_point()+
+  geom_smooth(method='lm',formula=y~x)
+```
+```{r}
+merged <- read_csv("~/Downloads/cdc-data-challenge-master/experiments/dataset/merged.csv")
+View (merged)
+```
+```{r}
+ggplot(data = merged, mapping = aes(mentalHealthMean, SuicideMean))+
+  geom_point()
+
+
+plot(SuicideMean ~ mentalHealthMean,  data = merged)
+suicidetomental = lm(SuicideMean ~ mentalHealthMean,  data = merged)
+abline(suicidetomental)
+summary(suicidetomental)
+```
+
+```{r}
+merged %>%
+  ggplot(aes(x = year, y = state, fill = mentalHealthMean)) +
+  geom_tile()+
+  scale_fill_gradient(low = "blue", high = "red")
+
+merged %>%
+  ggplot(aes(x = year, y = state, fill = SuicideMean)) +
+  geom_tile()+
+  scale_fill_gradient(low = "blue", high = "red")
+```
+```{r}
+mentaltopoverty = lm (mentalHealthMean ~ PovertyPercentage, data = merged)
+summary(mentaltopoverty)
+
+ggplot (data = merged, mapping = aes(PovertyPercentage, mentalHealthMean)) + 
+  geom_point()+
+  geom_smooth(method='lm',formula=y~x)
+
+
+```
+```{r}
+mentaltoyear = lm (mentalHealthMean ~ year, data = merged)
+summary(mentaltoyear)
+boxplot(mentalHealthMean ~ year, data = merged)
+
+```
+
+```{r}
+povertytoyear = lm (percent ~ Year, data = BigDataset)
+summary(povertytoyear)
+boxplot(percent ~ Year, data = BigDataset)
+```
+```{r}
+BigDataset %>%
+  ggplot() +
+  geom_line(mapping = aes(Year, percent))+
+  facet_wrap(~State)
+  
+```
+
+```{r}
+sd(BigDataset$AgeAdj)
+mean(BigDataset$AgeAdj)
+
+sd(BigDataset$percent)
+mean(BigDataset$percent)
+
+sd(merged$mentalHealthMean)
+mean(merged$mentalHealthMean)
+```
+
