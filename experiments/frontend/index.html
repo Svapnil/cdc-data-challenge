@@ -48,13 +48,14 @@ body {
 </head>
 <body style="text-align:center">
 	<h2 style="font-weight:bold" id="title"></h2>
+	<div id="description" style="padding-bottom:10px;font:18px sans-serif"></div>
 	<div>
 		<button type="button" class="btn btn-secondary" id="suicide">Suicide Rate</button>
 		<button type="button" class="btn btn-secondary" id="mental">Mental Health</button>
 		<button type="button" class="btn btn-secondary" id="poverty">Poverty</button>
 	</div>
   <svg class="container-fluid" style="width:950;height:500;" id="usaheatmap"></svg>
-  <div class="container-fluid" align="center" id="frames">
+  <div class="container-fluid" align="center" style="padding-bottom:10px" id="frames">
     <div class="btn-group" role="group" aria-label="Basic example">
       <button type="button" class="btn btn-secondary" id="backward"><i id="backwardIcon" class="fas fa-backward"></i></button>
       <button type="button" class="btn btn-secondary" id="play"><i id="playIcon" class="fas fa-play"></i></button>
@@ -68,7 +69,9 @@ body {
       </div>
     </div>
   </div>
-	<div id="legend"></div>
+	<div>Z-Scores</div>
+	<div class="container" id="legend"></div>
+
 </body>
 </html>
 

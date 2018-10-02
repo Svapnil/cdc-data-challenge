@@ -6,8 +6,15 @@ function getVis(jsonFile) {
 	    heatmapJson = data;
 			stateMap = new Map(heatmapJson.states);
 			document.getElementById("title").innerText = "Heatmap of " + heatmapJson.name +
-																										" from Years " + heatmapJson.year[0] +
+																										" from " + heatmapJson.year[0] +
 																										" to " + heatmapJson.year[heatmapJson.year.length-1];
+
+			if(heatmapJson.name == "Mental Health") {
+				heatmapJson.mean = [3.770261];
+				heatmapJson.units = "reported days of poor mental health monthly";
+				heatmapJson.sdev = [0.5214085];
+			}
+
 			getLayout();
 	});
 }
@@ -33,11 +40,17 @@ $("#poverty").click(function() {
 
 var interval;
 var isPlaying = false;
-$("#back").click(function() {
-	currentFrame = (currentFrame-1)%maxFrames;
+$("#backward").click(function() {
+	currentFrame = currentFrame-1;
+	if(currentFrame < 0) {
+		currentFrame = maxFrames-1;
+	}
 	setFrame();
 });
 $("#play").click(function() {
+	if(currentFrame >= maxFrames) {
+		currentFrame = -1;
+  }
 	var p = document.getElementById('playIcon');
 	if(isPlaying) {
 		clearInterval(interval);
@@ -47,8 +60,14 @@ $("#play").click(function() {
 		isPlaying = true;
 		p.className = "fas fa-pause";
 		interval = setInterval(function() {
-		currentFrame = (currentFrame+1)%maxFrames;
-		setFrame();
+		currentFrame = (currentFrame+1);
+		if(currentFrame >= maxFrames) {
+			isPlaying = false;
+			p.className = "fas fa-play";
+			clearInterval(interval);
+		} else {
+			setFrame();
+		}
 		}, 1000);
 	}
 });
@@ -83,14 +102,22 @@ var svg = d3.select("svg")
 			.attr("height", height);
 
 function getLayout() {
+	var description = document.getElementById('description');
+	while(description.firstChild) {
+		description.removeChild(description.firstChild);
+	}
+	description.innerHTML = "The <strong>mean</strong> of this data is <strong>" + heatmapJson.mean[0].toPrecision(3) + " " + heatmapJson.units + "</strong> " +
+													"with a <strong>standard deviation</strong> of <strong>" + heatmapJson.sdev[0].toPrecision(3) + "</strong>";
+
 	var legend = document.getElementById('legend');
 	while (legend.firstChild) {
     legend.removeChild(legend.firstChild);
 	}
-	for(var i = 0; i < heatmapJson.legend.length; i++) {
+	for(var i = 0; i < heatmapJson.legend.length-1; i++) {
 		var divLeg = document.createElement("div");
+		divLeg.setAttribute("style","display:inline-block");
 		var square = document.createElement("div");
-		square.setAttribute("style","width:30px;height:20px;background-color:" + heatmapJson.colors[i]);
+		square.setAttribute("style","width:20px;height:20px;background-color:" + heatmapJson.colors[i]);
 		var legendText = document.createElement("p");
 		legendText.innerText = heatmapJson.legend[i];
 		divLeg.appendChild(square);
@@ -106,6 +133,17 @@ function getLayout() {
 		var newYear = document.createElement("a");
 		newYear.setAttribute("class","dropdown-item");
 		newYear.innerText = heatmapJson.year[i];
+
+		newYear.onclick = function() {
+			console.log(this.innerText)
+			for(var i = 0; i < heatmapJson.year.length; i++) {
+				if(this.innerText == heatmapJson.year[i]) {
+					currentFrame = i;
+					setFrame();
+					break;
+				}
+			}
+		};
 		dropdown.appendChild(newYear);
 	}
 	currentFrame = 0;
